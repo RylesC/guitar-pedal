@@ -1,0 +1,86 @@
+//
+// This file is part of the GNU ARM Eclipse distribution.
+// Copyright (c) 2014 Liviu Ionescu.
+//
+
+// ----------------------------------------------------------------------------
+
+#include <stdio.h>
+#include <stdlib.h>
+#include "diag/Trace.h"
+
+#include "FreeRTOS/FreeRTOS.h"
+#include "FreeRTOS/StackMacros.h"
+#include "FreeRTOS/croutine.h"
+#include "FreeRTOS/event_groups.h"
+#include "FreeRTOS/list.h"
+#include "FreeRTOS/mpu_wrappers.h"
+#include "FreeRTOS/portable.h"
+#include "FreeRTOS/projdefs.h"
+#include "FreeRTOS/queue.h"
+#include "FreeRTOS/semphr.h"
+#include "FreeRTOS/task.h"
+#include "FreeRTOS/timers.h"
+
+// Sample pragmas to cope with warnings. Please note the related line at
+// the end of this function, used to pop the compiler diagnostics status.
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wunused-parameter"
+#pragma GCC diagnostic ignored "-Wmissing-declarations"
+#pragma GCC diagnostic ignored "-Wreturn-type"
+
+void vApplicationStackOverflowHook( TaskHandle_t *pxTask, char *pcTaskName );
+void vApplicationMallocFailedHook( void );
+void vApplicationIdleHook( void );
+void vApplicationTickHook( void );
+
+/* Called if stack overflow during execution */
+extern void vApplicationStackOverflowHook(TaskHandle_t *pxTask, char *pcTaskName)
+{
+    /* If the parameters have been corrupted then inspect pxCurrentTCB to
+     * identify which task has overflowed its stack.
+     */
+    for (;;)
+    {
+        /* Loop forever */
+    }
+}
+
+/* Called if memory allocation fails */
+extern void vApplicationMallocFailedHook(void)
+{
+    for(;;)
+    {
+        /* Loop forever */
+    }
+}
+
+/* This function is called by FreeRTOS idle task */
+extern void vApplicationIdleHook(void)
+{
+    /* Do nothing */
+}
+
+/* This function is called by FreeRTOS each tick */
+extern void vApplicationTickHook(void)
+{
+    /* Do nothing */
+}
+
+int main(int argc, char* argv[])
+{
+  // At this stage the system clock should have already been configured
+  // at high speed.
+  trace_printf("Hello, world!\r\n");
+  volatile uint32_t i = 100000;
+  // Infinite loop
+  while (1)
+    {
+       // Add your code here.
+       i -= 1;
+    }
+}
+
+#pragma GCC diagnostic pop
+
+// ----------------------------------------------------------------------------
