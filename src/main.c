@@ -9,6 +9,9 @@
 #include <stdlib.h>
 #include "diag/Trace.h"
 
+#include "stm32f4xx.h"
+#include "stm32f4-hal/stm32f4xx_hal.h"
+
 #include "FreeRTOS/FreeRTOS.h"
 #include "FreeRTOS/StackMacros.h"
 #include "FreeRTOS/croutine.h"
@@ -21,6 +24,8 @@
 #include "FreeRTOS/semphr.h"
 #include "FreeRTOS/task.h"
 #include "FreeRTOS/timers.h"
+
+#include "codec.h"
 
 // Sample pragmas to cope with warnings. Please note the related line at
 // the end of this function, used to pop the compiler diagnostics status.
@@ -69,16 +74,12 @@ extern void vApplicationTickHook(void)
 
 int main(int argc, char* argv[])
 {
-  // At this stage the system clock should have already been configured
-  // at high speed.
-  trace_printf("Hello, world!\r\n");
-  volatile uint32_t i = 100000;
-  // Infinite loop
-  while (1)
-    {
-       // Add your code here.
-       i -= 1;
-    }
+	__initialize_hardware();
+
+	while(1)
+	{
+
+	}
 }
 
 #pragma GCC diagnostic pop
