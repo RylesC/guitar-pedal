@@ -13,13 +13,20 @@
 #ifndef CODEC_H_
 #define CODEC_H_
 
+/*======================================================================*/
+/*                          GLOBAL DEPENDENCIES                         */
+/*======================================================================*/
 #include <stdio.h>
 #include <stdlib.h>
 #include "diag/Trace.h"
 #include "stm32f4xx.h"
 
 #include "stm32f4-hal/stm32f4xx_hal_i2c.h"
+#include "stm32f4-hal/stm32f4xx_hal_i2s.h"
 
+/*======================================================================*/
+/*                      GLOBAL CONSTANT DEFINITIONS                     */
+/*======================================================================*/
 #define CODEC_I2C_ADDRESS 	(0b0011010) << 1
 
 /* I2C */
@@ -48,9 +55,22 @@
 #define CODEC_DFMT_REG		0x07
 #define CODEC_SAMPCTRL_REG	0x08
 #define CODEC_ACTIVE_REG	0x09
-#define CODEC_RESET_REG		0x0f
+#define CODEC_RESET_REG		0x0F
 
-HAL_StatusTypeDef CODEC_i2c2Init(void);
-void CODEC_WriteRegister( uint8_t addr, uint8_t value );
+/*======================================================================*/
+/*                      GLOBAL VARIABLE DECLARATIONS                    */
+/*======================================================================*/
+I2C_HandleTypeDef I2cHandle;
+I2S_HandleTypeDef I2sHandle;
+
+/*======================================================================*/
+/*                          FUNCTION PROTOTYPES                         */
+/*======================================================================*/
+void 				CODEC_GPIOInit(void);
+HAL_StatusTypeDef 	CODEC_i2c2Init(void);
+HAL_StatusTypeDef 	CODEC_i2s2Init(uint32_t audioFrequency);
+
+void 				CODEC_WriteRegister(uint8_t addr, uint16_t value);
+void 				CODEC_Reset(void);
 
 #endif /* CODEC_H_ */

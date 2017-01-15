@@ -10,8 +10,6 @@
 
 #include "codec.h"
 
-I2C_HandleTypeDef I2cHandle;
-
 void CODEC_GPIOInit(void)
 {
 	GPIO_InitTypeDef	GPIO_InitStruct;
@@ -61,14 +59,40 @@ HAL_StatusTypeDef CODEC_i2c2Init(void)
 	return(initSuccess);
 }
 
-void CODEC_WriteRegister(uint8_t addr, uint8_t value)
+HAL_StatusTypeDef CODEC_i2s2Init(uint32_t audioFrequency)
 {
-	// 7-bit address & first data bit
-	uint8_t initAddr = ((addr << 1) & 0xFE) | ((value >> 8) & 0x01);
+	HAL_StatusTypeDef	initSuccess;
 
-	// Ensure device can be communicated with
-	while(HAL_I2C_IsDeviceReady(&I2cHandle, CODEC_I2C_ADDRESS, 1, 1000) != HAL_OK);
+	// Enable I2S peripheral clocks (same clock as SPI2)
+	__HAL_RCC_SPI2_CLK_ENABLE();
+
+	// Configure I2S settings
+	I2sHandle.Init.AudioFreq 		= audioFrequency;
+	I2sHandle.Init.CPOL 			= I2S_CPOL_LOW;
+	I2sHandle.Init.DataFormat 		= I2S_DATAFORMAT_24B;
+	I2sHandle.Init.Standard 		= I2S_STANDARD_PHILIPS;
+	I2sHandle.Init.FullDuplexMode 	= I2S_FULLDUPLEXMODE_ENABLE;
+	I2sHandle.Init.MCLKOutput 		= I2S_MCLKOUTPUT_ENABLE;
+	I2sHandle.Init.Mode 			= I2S_MODE_MASTER_TX;
+
+	initSuccess = HAL_I2S_Init(&I2sHandle);
+
+	return(initSuccess);
+}
+
+void CODEC_WriteRegister(uint8_t addr, uint16_t value)
+{
+	uint8_t data[2];
+	// 7-bit address & first data bit
+	data[0] = ((addr << 1) & 0xFE) | ((value >> 8) & 0x01);
+	data[1] = value & 0xFF;
 
 	// Write to register in codec format
-	while(HAL_I2C_Mem_Write(&I2cHandle, CODEC_I2C_ADDRESS, initAddr, I2C_MEMADD_SIZE_8BIT, (uint8_t *) value, (uint16_t) 1, 1000) != HAL_OK);
+	// This command should send the codec's I2C address followed by B15-8 and B7-0 of the register
+	while(HAL_I2C_Master_Transmit(&I2cHandle, CODEC_I2C_ADDRESS, data, 2, 1000) != HAL_OK);
+}
+
+void CODEC_Reset(void)
+{
+	CODEC_WriteRegister(CODEC_RESET_REG, 0);
 }
