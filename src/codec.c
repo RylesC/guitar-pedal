@@ -17,7 +17,7 @@ void CODEC_GPIOInit(void)
 
 	// Configure GPIO pins for I2C2
 	GPIO_InitStruct.Pin 		= CODEC_I2C_SCL_PIN | CODEC_I2C_SDA_PIN;
-	GPIO_InitStruct.Mode		= GPIO_MODE_AF_PP;
+	GPIO_InitStruct.Mode		= GPIO_MODE_AF_OD;
 	GPIO_InitStruct.Pull		= GPIO_NOPULL; 		// External 4k7 pullups used
 	GPIO_InitStruct.Speed		= GPIO_SPEED_HIGH;
 	GPIO_InitStruct.Alternate	= GPIO_AF4_I2C2;
@@ -27,7 +27,7 @@ void CODEC_GPIOInit(void)
 	GPIO_InitStruct.Pin 		= CODEC_I2S_WS_PIN | CODEC_I2S_extSD_PIN |
 								  CODEC_I2S_CK_PIN | CODEC_I2S_SD_PIN;
 	GPIO_InitStruct.Mode		= GPIO_MODE_AF_PP;
-	GPIO_InitStruct.Pull		= GPIO_NOPULL; 		// External 4k7 pullups used
+	GPIO_InitStruct.Pull		= GPIO_NOPULL;
 	GPIO_InitStruct.Speed		= GPIO_SPEED_HIGH;
 	GPIO_InitStruct.Alternate	= GPIO_AF5_SPI2;
 	HAL_GPIO_Init(CODEC_I2S_GPIO, &GPIO_InitStruct);
@@ -83,9 +83,12 @@ HAL_StatusTypeDef CODEC_i2s2Init(uint32_t audioFrequency)
 void CODEC_WriteRegister(uint8_t addr, uint16_t value)
 {
 	uint8_t data[2];
+
 	// 7-bit address & first data bit
-	data[0] = ((addr << 1) & 0xFE) | ((value >> 8) & 0x01);
-	data[1] = value & 0xFF;
+	data[0] = (uint8_t) (((addr << 1) & 0xFE) | ((value >> 8) & 0x01));
+
+	// Bottom 8 bits
+	data[1] = (uint8_t) (value & 0xFF);
 
 	// Write to register in codec format
 	// This command should send the codec's I2C address followed by B15-8 and B7-0 of the register
@@ -95,4 +98,12 @@ void CODEC_WriteRegister(uint8_t addr, uint16_t value)
 void CODEC_Reset(void)
 {
 	CODEC_WriteRegister(CODEC_RESET_REG, 0);
+}
+
+void CODEC_Test(void)
+{
+	CODEC_WriteRegister(CODEC_PDOWN_REG, 		0b0000000000000010);
+	CODEC_WriteRegister(CODEC_RLINEIN_REG, 		0b0000000000010111);
+	CODEC_WriteRegister(CODEC_APATHCTRL_REG, 	0b0000000000001010);
+	CODEC_WriteRegister(CODEC_ACTIVE_REG,		0b0000000000000001);
 }
