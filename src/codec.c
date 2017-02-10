@@ -107,3 +107,8 @@ void CODEC_Test(void)
 	CODEC_WriteRegister(CODEC_APATHCTRL_REG, 	0b0000000000001010);
 	CODEC_WriteRegister(CODEC_ACTIVE_REG,		0b0000000000000001);
 }
+
+void CODEC_PowerDown(uint8_t linein, uint8_t mic, uint8_t adc, uint8_t dac, uint8_t osc, uint8_t clkout, uint8_t poweroff)
+{
+	uint8_t pdValue = (poweroff << 8) | (clkout << 8);
+}

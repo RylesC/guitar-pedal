@@ -126,5 +126,6 @@ HAL_StatusTypeDef 	CODEC_i2s2Init(uint32_t audioFrequency);
 
 void 				CODEC_WriteRegister(uint8_t addr, uint16_t value);
 void 				CODEC_Reset(void);
+void 				CODEC_Test(void);
 
 #endif /* CODEC_H_ */

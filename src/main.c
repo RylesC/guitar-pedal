@@ -75,6 +75,9 @@ extern void vApplicationTickHook(void)
 int main(int argc, char* argv[])
 {
 	__initialize_hardware();
+	CODEC_GPIOInit();
+	CODEC_i2c2Init();
+	CODEC_Test();
 
 	while(1)
 	{
