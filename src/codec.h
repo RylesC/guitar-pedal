@@ -18,6 +18,7 @@
 /*======================================================================*/
 #include <stdio.h>
 #include <stdlib.h>
+#include <stdbool.h>
 #include "diag/Trace.h"
 #include "stm32f4xx.h"
 
@@ -57,65 +58,166 @@
 #define CODEC_ACTIVE_REG	0x09
 #define CODEC_RESET_REG		0x0F
 
-/* Left Line In Register */
-#define LLINEIN_LINMUTE		0x07
-#define LLINEIN_LRINBOTH	0x08
-
-/* Right Line In Register */
-#define RLINEIN_RINMUTE		0x07
-#define RLINEIN_RLINBOTH	0x08
-
-/* Left Headphone Out Register */
-#define LHPOUT_LZCEN		0x07
-#define LHPOUT_LRHPBOTH		0x08
-
-/* Right Headphone Out Register */
-#define RHPOUT_RZCEN		0x07
-#define RHPOUT_RLHPBOTH		0x08
-
-/* Analogue Audio Path Control Register */
-#define APATHCTRL_MICBOOST	0x00
-#define APATHCTRL_MUTEMIC	0x01
-#define APATHCTRL_INSEL		0x02
-#define APATHCTRL_BYPASS	0x03
-#define APATHCTRL_DACSEL	0x04
-#define APATHCTRL_SIDETONE	0x05
-
-/* Digital Audio Path Control Register */
-#define DPATHCTRL_ADCHPD	0x00
-#define DPATHCTRL_DACMU		0x03
-#define DPATHCTRL_HPOR		0x04
-
-/* Power Down Control Register */
-#define PDOWN_LINEINPD		0x00
-#define PDOWN_MICPD			0x01
-#define PDOWN_ADCPD			0x02
-#define PDOWN_DACPD			0x03
-#define PDOWN_OUTPD			0x04
-#define PDOWN_OSCPD			0x05
-#define PDOWN_CLKOUTPD		0x06
-#define PDOWN_POWEROFF		0x07
-
-/* Digital Audio Interface Format Register */
-#define DFMT_LRP			0x04
-#define DFMT_LRSWAP			0x05
-#define DFMT_MS				0x06
-#define DFMT_BCLKINV		0x07
-
-/* Sampling Control Register */
-#define SAMPCTRL_USB_NORMAL	0x00
-#define SAMPCTRL_BOSR		0x01
-#define SAMPCTRL_CLKIDIV2	0x06
-#define SAMPCTRL_CLKODIV2	0x07
-
-/* Active Control Register */
-#define ACTIVE_ACTIVEBIT	0x00
-
 /*======================================================================*/
 /*                      GLOBAL VARIABLE DECLARATIONS                    */
 /*======================================================================*/
 I2C_HandleTypeDef I2cHandle;
 I2S_HandleTypeDef I2sHandle;
+
+union LLineIn
+{
+	uint8_t data[2];
+
+	struct {
+		uint8_t LINMUTE		: 1;
+		uint8_t ADDR 		: 7;
+		uint8_t LINVOL		: 5;
+		uint8_t RESERVED	: 2;
+		uint8_t LRINBOTH 	: 1;
+	} reg;
+} LLineIn;
+
+union RLineIn
+{
+	uint8_t data[2];
+
+	struct {
+		uint8_t RINMUTE		: 1;
+		uint8_t ADDR 		: 7;
+		uint8_t RINVOL		: 5;
+		uint8_t RESERVED	: 2;
+		uint8_t RLINBOTH 	: 1;
+	} reg;
+} RLineIn;
+
+union LHPOut
+{
+	uint8_t data[2];
+
+	struct {
+		uint8_t LRHPBOTH	: 1;
+		uint8_t ADDR 		: 7;
+		uint8_t LHPVOL		: 7;
+		uint8_t LZCEN 		: 1;
+	} reg;
+} LHPOut;
+
+union RHPOut
+{
+	uint8_t data[2];
+
+	struct {
+		uint8_t RLHPBOTH	: 1;
+		uint8_t ADDR 		: 7;
+		uint8_t RHPVOL		: 7;
+		uint8_t RZCEN 		: 1;
+	} reg;
+} RHPOut;
+
+union APathControl
+{
+	uint8_t data[2];
+
+	struct {
+		uint8_t RESERVED	: 1;
+		uint8_t ADDR 		: 7;
+		uint8_t MICBOOST	: 1;
+		uint8_t MUTEMIC		: 1;
+		uint8_t INSEL		: 1;
+		uint8_t BYPASS		: 1;
+		uint8_t DACSEL 		: 1;
+		uint8_t SIDETONE	: 1;
+		uint8_t SIDEATT 	: 2;
+	} reg;
+} APathControl;
+
+union DPathControl
+{
+	uint8_t data[2];
+
+	struct {
+		uint8_t RESERVED1 	: 1;
+		uint8_t ADDR 		: 7;
+		uint8_t ADCHPD		: 1;
+		uint8_t DEEMP		: 2;
+		uint8_t DACMU 		: 1;
+		uint8_t HPOR		: 1;
+		uint8_t RESERVED2	: 3;
+	} reg;
+} DPathControl;
+
+union PDownControl
+{
+	uint8_t data[2];
+
+	struct {
+		uint8_t RESERVED	: 1;
+		uint8_t ADDR		: 7;
+		uint8_t LINEINPD	: 1;
+		uint8_t MICPD		: 1;
+		uint8_t ADCPD		: 1;
+		uint8_t DACPD		: 1;
+		uint8_t OUTPD		: 1;
+		uint8_t OSCPD		: 1;
+		uint8_t CLKOUTPD	: 1;
+		uint8_t POWEROFF	: 1;
+	} reg;
+} PDownControl;
+
+union DAInterfaceFormat
+{
+	uint8_t data[2];
+
+	struct {
+		uint8_t RESERVED	: 1;
+		uint8_t ADDR		: 7;
+		uint8_t FORMAT		: 2;
+		uint8_t IWL			: 2;
+		uint8_t LRP			: 1;
+		uint8_t LRSWAP		: 1;
+		uint8_t MS			: 1;
+		uint8_t BCLKINV		: 1;
+	} reg;
+} DAInterfaceFormat;
+
+union SamplingControl
+{
+	uint8_t data[2];
+
+	struct {
+		uint8_t RESERVED	: 1;
+		uint8_t ADDR		: 7;
+		uint8_t USBNORMAL	: 1;
+		uint8_t BOSR		: 1;
+		uint8_t SR			: 4;
+		uint8_t CLKIDIV2	: 1;
+		uint8_t CLKODIV2	: 1;
+	} reg;
+} SamplingControl;
+
+union ActiveControl
+{
+	uint8_t data[2];
+
+	struct {
+		uint8_t RESERVED1	: 1;
+		uint8_t ADDR		: 7;
+		uint8_t ACTIVE		: 1;
+		uint8_t RESERVED2	: 7;
+
+	} reg;
+} ActiveControl;
+
+union ResetReg
+{
+	uint8_t data[2];
+
+	struct {
+		uint8_t RESET1		: 1;
+		uint8_t ADDR		: 7;
+		uint8_t RESET2		: 8;
+	} reg;
+} ResetReg;
 
 /*======================================================================*/
 /*                          FUNCTION PROTOTYPES                         */
@@ -127,5 +229,11 @@ HAL_StatusTypeDef 	CODEC_i2s2Init(uint32_t audioFrequency);
 void 				CODEC_WriteRegister(uint8_t addr, uint16_t value);
 void 				CODEC_Reset(void);
 void 				CODEC_Test(void);
+
+void codec_RegisterInit(void);
+void codec_UpdateRegister(uint16_t codecReg);
+void codec_SetInputVolume(uint8_t volume);
+void codec_SetOutputVolume(uint8_t volume);
+void codec_MuteOutput(bool mute);
 
 #endif /* CODEC_H_ */

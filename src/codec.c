@@ -102,13 +102,130 @@ void CODEC_Reset(void)
 
 void CODEC_Test(void)
 {
-	CODEC_WriteRegister(CODEC_PDOWN_REG, 		0b0000000000000010);
-	CODEC_WriteRegister(CODEC_RLINEIN_REG, 		0b0000000000010111);
-	CODEC_WriteRegister(CODEC_APATHCTRL_REG, 	0b0000000000001010);
-	CODEC_WriteRegister(CODEC_ACTIVE_REG,		0b0000000000000001);
+	codec_RegisterInit();
+
+	// Disable clock output
+	PDownControl.reg.CLKOUTPD = 1;
+	codec_UpdateRegister(CODEC_PDOWN_REG);
+
+	// Default volume
+	RLineIn.reg.RINVOL = 0b10111;
+	codec_UpdateRegister(CODEC_RLINEIN_REG);
+
+	// Mute microphone and enable bypass
+	APathControl.reg.BYPASS = 1;
+	APathControl.reg.MUTEMIC = 1;
+	codec_UpdateRegister(CODEC_APATHCTRL_REG);
+
+	// Activate codec
+	ActiveControl.reg.ACTIVE = 1;
+	codec_UpdateRegister(CODEC_ACTIVE_REG);
 }
 
-void CODEC_PowerDown(uint8_t linein, uint8_t mic, uint8_t adc, uint8_t dac, uint8_t osc, uint8_t clkout, uint8_t poweroff)
+void codec_RegisterInit(void)
 {
-	uint8_t pdValue = (poweroff << 8) | (clkout << 8);
+	// Setup register addresses
+	LLineIn.reg.ADDR 			= CODEC_LLINEIN_REG;
+	RLineIn.reg.ADDR 			= CODEC_RLINEIN_REG;
+	LHPOut.reg.ADDR 			= CODEC_LHPOUT_REG;
+	RHPOut.reg.ADDR 			= CODEC_RHPOUT_REG;
+	APathControl.reg.ADDR 		= CODEC_APATHCTRL_REG;
+	DPathControl.reg.ADDR 		= CODEC_DPATHCTRL_REG;
+	PDownControl.reg.ADDR 		= CODEC_PDOWN_REG;
+	DAInterfaceFormat.reg.ADDR 	= CODEC_DFMT_REG;
+	SamplingControl.reg.ADDR 	= CODEC_SAMPCTRL_REG;
+	ActiveControl.reg.ADDR 		= CODEC_ACTIVE_REG;
+	ResetReg.reg.ADDR 			= CODEC_RESET_REG;
 }
+
+void codec_UpdateRegister(uint16_t codecReg)
+{
+	uint8_t *data = NULL;
+
+	switch(codecReg)
+	{
+		case CODEC_LLINEIN_REG:
+			data = LLineIn.data;
+		break;
+
+		case CODEC_RLINEIN_REG:
+			data = RLineIn.data;
+		break;
+
+		case CODEC_LHPOUT_REG:
+			data = LHPOut.data;
+		break;
+
+		case CODEC_RHPOUT_REG:
+			data = RHPOut.data;
+		break;
+
+		case CODEC_APATHCTRL_REG:
+			data = APathControl.data;
+		break;
+
+		case CODEC_DPATHCTRL_REG:
+			data = DPathControl.data;
+		break;
+
+		case CODEC_PDOWN_REG:
+			data = PDownControl.data;
+		break;
+
+		case CODEC_DFMT_REG:
+			data = DAInterfaceFormat.data;
+		break;
+
+		case CODEC_SAMPCTRL_REG:
+			data = SamplingControl.data;
+		break;
+
+		case CODEC_ACTIVE_REG:
+			data = ActiveControl.data;
+		break;
+
+		case CODEC_RESET_REG:
+			data = ResetReg.data;
+		break;
+
+		default:
+		break;
+	}
+
+	if(data != NULL)
+	{
+		while(HAL_I2C_Master_Transmit(&I2cHandle, CODEC_I2C_ADDRESS, data, 2, 1000) != HAL_OK);
+	}
+}
+
+void codec_SetInputVolume(uint8_t volume)
+{
+	// Range from 0 to 32
+	if( volume > 32 ) volume = 32;
+
+	RLineIn.reg.RINVOL = volume;
+
+	codec_UpdateRegister(CODEC_RLINEIN_REG);
+}
+
+void codec_SetOutputVolume(uint8_t volume)
+{
+	// Range from 0 to 128
+	if( volume > 128 ) volume = 128;
+
+
+}
+
+void codec_MuteOutput(bool mute)
+{
+	if(mute)
+	{
+		CODEC_WriteRegister(CODEC_RHPOUT_REG, 0x00);
+
+	}
+}
+
+//void CODEC_PowerDown(uint8_t linein, uint8_t mic, uint8_t adc, uint8_t dac, uint8_t osc, uint8_t clkout, uint8_t poweroff)
+//{
+//	uint8_t pdValue = (poweroff << 8) | (clkout << 8);
+//}
