@@ -77,7 +77,7 @@ int main(int argc, char* argv[])
 	__initialize_hardware();
 	CODEC_GPIOInit();
 	CODEC_i2c2Init();
-	CODEC_Test();
+	CODEC_Init();
 
 	while(1)
 	{

@@ -58,6 +58,9 @@
 #define CODEC_ACTIVE_REG	0x09
 #define CODEC_RESET_REG		0x0F
 
+#define CODEC_IN_DEFAULT_VOL 0b10111
+#define CODEC_HP_DEFAULT_VOL 0b1111001
+
 /*======================================================================*/
 /*                      GLOBAL VARIABLE DECLARATIONS                    */
 /*======================================================================*/
@@ -222,18 +225,22 @@ union ResetReg
 /*======================================================================*/
 /*                          FUNCTION PROTOTYPES                         */
 /*======================================================================*/
-void 				CODEC_GPIOInit(void);
-HAL_StatusTypeDef 	CODEC_i2c2Init(void);
-HAL_StatusTypeDef 	CODEC_i2s2Init(uint32_t audioFrequency);
+void 				CODEC_GPIOInit			(void);
+HAL_StatusTypeDef 	CODEC_i2c2Init			(void);
+HAL_StatusTypeDef 	CODEC_i2s2Init			(uint32_t audioFrequency);
 
-void 				CODEC_WriteRegister(uint8_t addr, uint16_t value);
-void 				CODEC_Reset(void);
-void 				CODEC_Test(void);
+void 				CODEC_WriteRegister		(uint8_t addr, uint16_t value);
+void 				CODEC_Reset				(void);
+void 				CODEC_Init				(void);
 
-void codec_RegisterInit(void);
-void codec_UpdateRegister(uint16_t codecReg);
-void codec_SetInputVolume(uint8_t volume);
-void codec_SetOutputVolume(uint8_t volume);
-void codec_MuteOutput(bool mute);
+void 				codec_RegisterInit		(void);
+void 				codec_UpdateRegister	(uint16_t codecReg);
+void 				codec_SetInputVolume	(uint8_t volume);
+void 				codec_SetOutputVolume	(uint8_t volume);
+void 				codec_ZeroCrossHPOutput	(bool enable);
+void 				codec_PowerOn			(void);
+void 				codec_ActivateCodec		(void);
+void 				codec_EnableBypass		(bool enable);
+void 				codec_ResetCodec		(void);
 
 #endif /* CODEC_H_ */
