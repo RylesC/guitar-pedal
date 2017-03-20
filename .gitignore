@@ -57,3 +57,5 @@
 ehthumbs.db
 Thumbs.db
 /Debug/
+
+.settings/language.settings.xml

@@ -14,6 +14,7 @@ void CODEC_GPIOInit(void)
 {
 	GPIO_InitTypeDef	GPIO_InitStruct;
 	__GPIOB_CLK_ENABLE();
+	__GPIOC_CLK_ENABLE();
 
 	// Configure GPIO pins for I2C2
 	GPIO_InitStruct.Pin 		= CODEC_I2C_SCL_PIN | CODEC_I2C_SDA_PIN;
@@ -24,12 +25,15 @@ void CODEC_GPIOInit(void)
 	HAL_GPIO_Init(CODEC_I2C_GPIO, &GPIO_InitStruct);
 
 	// Configure GPIO pins for I2S
-	GPIO_InitStruct.Pin 		= CODEC_I2S_WS_PIN | CODEC_I2S_extSD_PIN |
-								  CODEC_I2S_CK_PIN | CODEC_I2S_SD_PIN;
+	GPIO_InitStruct.Pin 		= CODEC_I2S_WS_PIN | CODEC_I2S_CK_PIN | CODEC_I2S_SD_PIN;
 	GPIO_InitStruct.Mode		= GPIO_MODE_AF_PP;
 	GPIO_InitStruct.Pull		= GPIO_NOPULL;
-	GPIO_InitStruct.Speed		= GPIO_SPEED_HIGH;
+	GPIO_InitStruct.Speed		= GPIO_SPEED_LOW;
 	GPIO_InitStruct.Alternate	= GPIO_AF5_SPI2;
+	HAL_GPIO_Init(CODEC_I2S_GPIO, &GPIO_InitStruct);
+
+	GPIO_InitStruct.Pin			= CODEC_I2S_extSD_PIN;
+	GPIO_InitStruct.Alternate	= GPIO_AF6_I2S2ext;
 	HAL_GPIO_Init(CODEC_I2S_GPIO, &GPIO_InitStruct);
 
 	// Configure I2S MCK
@@ -40,6 +44,9 @@ void CODEC_GPIOInit(void)
 HAL_StatusTypeDef CODEC_i2c2Init(void)
 {
 	HAL_StatusTypeDef	initSuccess;
+	RCC_PeriphCLKInitTypeDef i2sClkInit;
+
+	i2sClkInit.PeriphClockSelection = RCC_PERIPHCLK_I2S;
 
 	// Enable I2C peripheral clocks
 	__HAL_RCC_I2C2_CLK_ENABLE();
@@ -63,17 +70,32 @@ HAL_StatusTypeDef CODEC_i2s2Init(uint32_t audioFrequency)
 {
 	HAL_StatusTypeDef	initSuccess;
 
+	// Enable I2S PLL
+	__HAL_RCC_PLLI2S_ENABLE();
+
+	// Enable DMA Controller Clock
+	//__HAL_RCC_DMA1_CLK_ENABLE();
+
+	// Configure DMA stream
+	//HAL_NVIC_SetPriority(DMA1_Stream0_IRQn, 0, 0);
+	//HAL_NVIC_EnableIRQ(DMA1_Stream0_IRQn);
+
+	//HAL_NVIC_SetPriority(DMA1_Stream7_IRQn, 0, 0);
+	//HAL_NVIC_EnableIRQ(DMA1_Stream7_IRQn);
+
 	// Enable I2S peripheral clocks (same clock as SPI2)
 	__HAL_RCC_SPI2_CLK_ENABLE();
 
 	// Configure I2S settings
-	I2sHandle.Init.AudioFreq 		= audioFrequency;
+	I2sHandle.Instance				= SPI2;
+	I2sHandle.Init.AudioFreq 		= I2S_AUDIOFREQ_48K;
 	I2sHandle.Init.CPOL 			= I2S_CPOL_LOW;
 	I2sHandle.Init.DataFormat 		= I2S_DATAFORMAT_24B;
 	I2sHandle.Init.Standard 		= I2S_STANDARD_PHILIPS;
 	I2sHandle.Init.FullDuplexMode 	= I2S_FULLDUPLEXMODE_ENABLE;
 	I2sHandle.Init.MCLKOutput 		= I2S_MCLKOUTPUT_ENABLE;
 	I2sHandle.Init.Mode 			= I2S_MODE_MASTER_TX;
+	I2sHandle.Init.ClockSource		= I2S_CLOCK_PLL;
 
 	initSuccess = HAL_I2S_Init(&I2sHandle);
 
@@ -188,8 +210,8 @@ void codec_RegisterInit(void)
 	SamplingControl.reg.CLKODIV2	= 0;
 	SamplingControl.reg.CLKIDIV2	= 0;
 	SamplingControl.reg.SR			= 0b0000;
-	SamplingControl.reg.BOSR		= 0;
-	SamplingControl.reg.USBNORMAL 	= 0;
+	SamplingControl.reg.BOSR		= 0;	// Normal Mode: 256fs
+	SamplingControl.reg.USBNORMAL 	= 0;	// 256/384fs
 
 	// Active Control Register
 	ActiveControl.reg.ADDR 		= CODEC_ACTIVE_REG;
