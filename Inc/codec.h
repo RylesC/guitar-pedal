@@ -220,18 +220,8 @@ union ResetReg
 /*======================================================================*/
 /*                          FUNCTION PROTOTYPES                         */
 /*======================================================================*/
-void 				CODEC_WriteRegister		(uint8_t addr, uint16_t value);
-void 				CODEC_Reset				(void);
-void 				CODEC_Init				(void);
+void CODEC_Init				(void);
+void CODEC_startReadWrite	(void);
 
-void 				codec_RegisterInit		(void);
-void 				codec_UpdateRegister	(uint16_t codecReg);
-void 				codec_SetInputVolume	(uint8_t volume);
-void 				codec_SetOutputVolume	(uint8_t volume);
-void 				codec_ZeroCrossHPOutput	(bool enable);
-void 				codec_PowerOn			(void);
-void 				codec_ActivateCodec		(void);
-void 				codec_EnableBypass		(bool enable);
-void 				codec_ResetCodec		(void);
 
 #endif /* CODEC_H_ */

@@ -46,6 +46,7 @@
 #include "task.h"
 #include "cmsis_os.h"
 #include "codec.h"
+#include "stm32f4xx_it.h"
 
 /* USER CODE BEGIN Includes */     
 
@@ -110,11 +111,22 @@ void StartDefaultTask(void const * argument)
   MX_FATFS_Init();
 
   /* USER CODE BEGIN StartDefaultTask */
+
   CODEC_Init();
+
+  CODEC_startReadWrite();
   /* Infinite loop */
+
   for(;;)
   {
-    osDelay(1);
+	  if( I2SDMATxCompleted )
+	  {
+		  I2SDMARxCompleted = 0;
+		  I2SDMATxCompleted = 0;
+		  CODEC_startReadWrite();
+	  }
+
+	  taskYIELD();
   }
   /* USER CODE END StartDefaultTask */
 }

@@ -67,7 +67,7 @@ extern void Error_Handler(void);
 void MX_I2S2_Init(void);
 
 /* USER CODE BEGIN Prototypes */
-
+void I2S2_TransmitReceive_DMA(uint16_t *pTx, uint16_t *pRx, uint16_t size);
 /* USER CODE END Prototypes */
 
 #ifdef __cplusplus

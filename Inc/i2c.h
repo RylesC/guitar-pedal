@@ -56,8 +56,8 @@
 
 /* USER CODE END Includes */
 
-I2C_HandleTypeDef hi2c1;
-I2C_HandleTypeDef hi2c2;
+extern I2C_HandleTypeDef hi2c1;
+extern I2C_HandleTypeDef hi2c2;
 
 /* USER CODE BEGIN Private defines */
 
@@ -69,7 +69,7 @@ void MX_I2C1_Init(void);
 void MX_I2C2_Init(void);
 
 /* USER CODE BEGIN Prototypes */
-
+void I2C2_TransmitBlocking(uint16_t address, uint8_t *data, uint16_t size, uint16_t timeout);
 /* USER CODE END Prototypes */
 
 #ifdef __cplusplus

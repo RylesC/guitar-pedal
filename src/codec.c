@@ -10,25 +10,21 @@
 
 #include "codec.h"
 
-void CODEC_WriteRegister(uint8_t addr, uint16_t value)
-{
-	uint8_t data[2];
+uint16_t buffer1[64] = {0};
+uint16_t buffer2[64] = {0};
 
-	// 7-bit address & first data bit
-	data[0] = (uint8_t) (((addr << 1) & 0xFE) | ((value >> 8) & 0x01));
+void codec_EnableDACOut			(bool enable);
+void codec_EnableADCIn			(bool enable);
+void codec_RegisterInit			(void);
+void codec_UpdateRegister		(uint16_t codecReg);
+void codec_SetInputVolume		(uint8_t volume);
+void codec_SetOutputVolume		(uint8_t volume);
+void codec_ZeroCrossHPOutput	(bool enable);
+void codec_PowerOn				(void);
+void codec_ActivateCodec		(void);
+void codec_EnableBypass			(bool enable);
+void codec_ResetCodec			(void);
 
-	// Bottom 8 bits
-	data[1] = (uint8_t) (value & 0xFF);
-
-	// Write to register in codec format
-	// This command should send the codec's I2C address followed by B15-8 and B7-0 of the register
-	while(HAL_I2C_Master_Transmit(&hi2c2, CODEC_I2C_ADDRESS, data, 2, 1000) != HAL_OK);
-}
-
-void CODEC_Reset(void)
-{
-	CODEC_WriteRegister(CODEC_RESET_REG, 0);
-}
 
 void CODEC_Init(void)
 {
@@ -38,14 +34,69 @@ void CODEC_Init(void)
 	// Reset codec to default state
 	codec_ResetCodec();
 
+	codec_EnableDACOut(true);
+	codec_EnableADCIn(true);
+
 	// Power on codec peripherals
 	codec_PowerOn();
 
-	// Enable bypass
-	codec_EnableBypass(true);
-
 	// Activate codec
 	codec_ActivateCodec();
+
+	codec_SetOutputVolume(40);
+	codec_SetInputVolume(5);
+}
+
+void CODEC_startReadWrite(void)
+{
+	static bool bufferSelect = true;
+
+	if(bufferSelect)
+	{
+		I2S2_TransmitReceive_DMA(buffer1, buffer2, 64);
+		bufferSelect = false;
+	} else {
+		I2S2_TransmitReceive_DMA(buffer2, buffer1, 64);
+		bufferSelect = true;
+	}
+
+}
+
+void codec_EnableDACOut(bool enable)
+{
+	if(enable)
+	{
+		APathControl.reg.DACSEL = 1;
+		APathControl.reg.BYPASS = 0;
+		DPathControl.reg.DACMU	= 0;
+		DPathControl.reg.DEEMP  = 0b11;
+	} else {
+		APathControl.reg.DACSEL = 0;
+		DPathControl.reg.DACMU	= 1;
+	}
+
+	codec_UpdateRegister(CODEC_APATHCTRL_REG);
+	codec_UpdateRegister(CODEC_DPATHCTRL_REG);
+}
+
+void codec_EnableADCIn(bool enable)
+{
+	if(enable)
+	{
+		// Unmute RLineIn
+		RLineIn.reg.RINMUTE = 0;
+	} else {
+		// Mute RLineIn
+		RLineIn.reg.RINMUTE = 1;
+	}
+
+	codec_UpdateRegister(CODEC_RLINEIN_REG);
+}
+
+void codec_ConfigureDFMT(void)
+{
+	DAInterfaceFormat.reg.IWL = 0b11; // Configure for 32-bit frame
+	codec_UpdateRegister(CODEC_DFMT_REG);
 }
 
 void codec_RegisterInit(void)
@@ -112,6 +163,7 @@ void codec_RegisterInit(void)
 	DAInterfaceFormat.reg.LRP 		= 0;
 	DAInterfaceFormat.reg.IWL		= 0b10;	// 24-bit Input Audio Data
 	DAInterfaceFormat.reg.FORMAT 	= 0b10; // I2S Format, MSB First, left justified
+
 
 	// Sampling Control Register
 	SamplingControl.reg.ADDR 		= CODEC_SAMPCTRL_REG;
@@ -185,7 +237,7 @@ void codec_UpdateRegister(uint16_t codecReg)
 
 	if(data != NULL)
 	{
-		while(HAL_I2C_Master_Transmit(&hi2c2, CODEC_I2C_ADDRESS, data, 2, 1000) != HAL_OK);
+		I2C2_TransmitBlocking(CODEC_I2C_ADDRESS, data, 2, 1000);
 	}
 }
 

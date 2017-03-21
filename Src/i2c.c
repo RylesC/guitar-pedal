@@ -44,11 +44,16 @@
 
 /* Includes ------------------------------------------------------------------*/
 #include "i2c.h"
-
 #include "gpio.h"
 
-/* USER CODE BEGIN 0 */
+I2C_HandleTypeDef hi2c1;
+I2C_HandleTypeDef hi2c2;
 
+/* USER CODE BEGIN 0 */
+void I2C2_TransmitBlocking(uint16_t address, uint8_t *data, uint16_t size, uint16_t timeout)
+{
+	while(HAL_I2C_Master_Transmit(&hi2c2, address, data, size, timeout) != HAL_OK);
+}
 /* USER CODE END 0 */
 
 /* I2C1 init function */

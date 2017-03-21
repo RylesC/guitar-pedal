@@ -51,10 +51,14 @@
 /* USER CODE BEGIN 0 */
 
 /* USER CODE END 0 */
-
 I2S_HandleTypeDef hi2s2;
 DMA_HandleTypeDef hdma_spi2_tx;
 DMA_HandleTypeDef hdma_i2s2_ext_rx;
+
+void I2S2_TransmitReceive_DMA(uint16_t *pTx, uint16_t *pRx, uint16_t size)
+{
+	HAL_I2SEx_TransmitReceive_DMA(&hi2s2, pTx, pRx, size);
+}
 
 /* I2S2 init function */
 void MX_I2S2_Init(void)
