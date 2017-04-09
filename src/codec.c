@@ -10,8 +10,8 @@
 
 #include "codec.h"
 
-uint16_t buffer1[64] = {0};
-uint16_t buffer2[64] = {0};
+uint16_t buffer1[66] = {0};
+uint16_t buffer2[66] = {0};
 
 void codec_EnableDACOut			(bool enable);
 void codec_EnableADCIn			(bool enable);
@@ -38,11 +38,13 @@ void CODEC_Init(void)
 	codec_EnableADCIn(true);
 
 	// Power on codec peripherals
+	// Update to power on peripherals in correct order
 	codec_PowerOn();
 
 	// Activate codec
 	codec_ActivateCodec();
 
+	// Just for testing...
 	codec_SetOutputVolume(40);
 	codec_SetInputVolume(5);
 }
@@ -53,13 +55,17 @@ void CODEC_startReadWrite(void)
 
 	if(bufferSelect)
 	{
-		I2S2_TransmitReceive_DMA(buffer1, buffer2, 64);
+		I2S2_TransmitReceive_DMA(buffer1, buffer2, 66);
 		bufferSelect = false;
 	} else {
-		I2S2_TransmitReceive_DMA(buffer2, buffer1, 64);
+		I2S2_TransmitReceive_DMA(buffer2, buffer1, 66);
 		bufferSelect = true;
 	}
+}
 
+void CODEC_sendReceive(void)
+{
+	I2S2_TransmitReceive_DMA(codecTxBuffer, codecRxBuffer, 66);
 }
 
 void codec_EnableDACOut(bool enable)

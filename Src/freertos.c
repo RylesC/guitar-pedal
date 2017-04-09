@@ -42,10 +42,12 @@
   */
 
 /* Includes ------------------------------------------------------------------*/
+#include <string.h>
 #include "FreeRTOS.h"
 #include "task.h"
 #include "cmsis_os.h"
 #include "codec.h"
+#include "audio_effects.h"
 #include "stm32f4xx_it.h"
 
 /* USER CODE BEGIN Includes */     
@@ -54,6 +56,7 @@
 
 /* Variables -----------------------------------------------------------------*/
 osThreadId defaultTaskHandle;
+osThreadId codecTaskHandle;
 
 /* USER CODE BEGIN Variables */
 
@@ -61,6 +64,7 @@ osThreadId defaultTaskHandle;
 
 /* Function prototypes -------------------------------------------------------*/
 void StartDefaultTask(void const * argument);
+void CodecTask(void const * argument);
 
 extern void MX_FATFS_Init(void);
 void MX_FREERTOS_Init(void); /* (MISRA C 2004 rule 8.1) */
@@ -97,6 +101,8 @@ void MX_FREERTOS_Init(void) {
 
   /* USER CODE BEGIN RTOS_THREADS */
   /* add threads, ... */
+  osThreadDef(codecTask, CodecTask, osPriorityNormal, 0, 128);
+  codecTaskHandle = osThreadCreate(osThread(codecTask), NULL);
   /* USER CODE END RTOS_THREADS */
 
   /* USER CODE BEGIN RTOS_QUEUES */
@@ -112,26 +118,51 @@ void StartDefaultTask(void const * argument)
 
   /* USER CODE BEGIN StartDefaultTask */
 
-  CODEC_Init();
-
-  CODEC_startReadWrite();
   /* Infinite loop */
 
   for(;;)
   {
-	  if( I2SDMATxCompleted )
-	  {
-		  I2SDMARxCompleted = 0;
-		  I2SDMATxCompleted = 0;
-		  CODEC_startReadWrite();
-	  }
-
 	  taskYIELD();
   }
   /* USER CODE END StartDefaultTask */
 }
 
 /* USER CODE BEGIN Application */
+void CodecTask(void const * argument)
+{
+	uint32_t formattedData[66] = {0};
+	memset(codecTxBuffer, 0x00, sizeof(codecTxBuffer));
+	memset(codecRxBuffer, 0x00, sizeof(codecRxBuffer));
+
+	CODEC_Init();
+
+	// Start codec transfer
+	CODEC_sendReceive();
+
+	for(;;)
+	{
+		// Wait to receive data
+		if( I2SDMARxCompleted )
+		{
+			// Update flags
+			I2SDMARxCompleted = 0;
+			I2SDMATxCompleted = 0;
+
+			// Re-package audio data to 32-bit packets
+			AUDIO_receive32BitRightCH(codecTxBuffer, formattedData, 66);
+
+			// Apply audio effect
+
+			// Re-package audio data to 24-bit packets
+			memcpy(codecTxBuffer, codecRxBuffer, sizeof(codecRxBuffer));
+
+			// Transfer to codec
+			CODEC_sendReceive();
+		}
+
+		taskYIELD();
+	}
+}
      
 /* USER CODE END Application */
 

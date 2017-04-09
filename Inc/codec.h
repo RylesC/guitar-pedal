@@ -217,11 +217,15 @@ union ResetReg
 	} reg;
 } ResetReg;
 
+uint16_t codecTxBuffer[66];
+uint16_t codecRxBuffer[66];
+
 /*======================================================================*/
 /*                          FUNCTION PROTOTYPES                         */
 /*======================================================================*/
 void CODEC_Init				(void);
 void CODEC_startReadWrite	(void);
+void CODEC_sendReceive		(void);
 
 
 #endif /* CODEC_H_ */
