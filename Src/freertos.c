@@ -130,14 +130,14 @@ void StartDefaultTask(void const * argument)
 /* USER CODE BEGIN Application */
 void CodecTask(void const * argument)
 {
-	uint32_t formattedData[66] = {0};
-	memset(codecTxBuffer, 0x00, sizeof(codecTxBuffer));
-	memset(codecRxBuffer, 0x00, sizeof(codecRxBuffer));
+	//uint32_t formattedData[66] = {0};
+	memset(codecTxBuffer, 0x00, 8192 * sizeof(uint16_t));
+	memset(codecRxBuffer, 0x00, 8192 * sizeof(uint16_t));
 
 	CODEC_Init();
 
 	// Start codec transfer
-	CODEC_sendReceive();
+	CODEC_sendReceive((uint16_t *)codecTxBuffer, (uint16_t *)codecRxBuffer);
 
 	for(;;)
 	{
@@ -149,18 +149,16 @@ void CodecTask(void const * argument)
 			I2SDMATxCompleted = 0;
 
 			// Re-package audio data to 32-bit packets
-			AUDIO_receive32BitRightCH(codecTxBuffer, formattedData, 66);
+			//AUDIO_receive32BitRightCH(codecTxBuffer, formattedData, 66);
 
 			// Apply audio effect
 
 			// Re-package audio data to 24-bit packets
-			memcpy(codecTxBuffer, codecRxBuffer, sizeof(codecRxBuffer));
+			//memcpy(codecTxBuffer, codecRxBuffer, sizeof(codecRxBuffer));
 
 			// Transfer to codec
-			CODEC_sendReceive();
+			CODEC_sendReceive((uint16_t *)codecRxBuffer, (uint16_t *)codecRxBuffer);
 		}
-
-		taskYIELD();
 	}
 }
      

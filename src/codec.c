@@ -34,12 +34,13 @@ void CODEC_Init(void)
 	// Reset codec to default state
 	codec_ResetCodec();
 
-	codec_EnableDACOut(true);
 	codec_EnableADCIn(true);
 
 	// Power on codec peripherals
 	// Update to power on peripherals in correct order
 	codec_PowerOn();
+
+	codec_EnableDACOut(true);
 
 	// Activate codec
 	codec_ActivateCodec();
@@ -63,9 +64,9 @@ void CODEC_startReadWrite(void)
 	}
 }
 
-void CODEC_sendReceive(void)
+void CODEC_sendReceive(uint16_t *pTx, uint16_t *pRx)
 {
-	I2S2_TransmitReceive_DMA(codecTxBuffer, codecRxBuffer, 66);
+	I2S2_TransmitReceive_DMA(pTx, pRx, 8192);
 }
 
 void codec_EnableDACOut(bool enable)
@@ -87,6 +88,9 @@ void codec_EnableDACOut(bool enable)
 
 void codec_EnableADCIn(bool enable)
 {
+	LLineIn.reg.LINMUTE = 1;
+	LLineIn.reg.LINVOL = 0;
+
 	if(enable)
 	{
 		// Unmute RLineIn
@@ -97,6 +101,7 @@ void codec_EnableADCIn(bool enable)
 	}
 
 	codec_UpdateRegister(CODEC_RLINEIN_REG);
+	codec_UpdateRegister(CODEC_LLINEIN_REG);
 }
 
 void codec_ConfigureDFMT(void)
