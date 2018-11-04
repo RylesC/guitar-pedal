@@ -99,6 +99,7 @@ void HAL_I2S_MspInit(I2S_HandleTypeDef* i2sHandle)
     PB15     ------> I2S2_SD
     PC6     ------> I2S2_MCK 
     */
+
     GPIO_InitStruct.Pin = GPIO_PIN_12|GPIO_PIN_13|GPIO_PIN_15;
     GPIO_InitStruct.Mode = GPIO_MODE_AF_PP;
     GPIO_InitStruct.Pull = GPIO_NOPULL;

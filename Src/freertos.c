@@ -43,12 +43,14 @@
 
 /* Includes ------------------------------------------------------------------*/
 #include <string.h>
+#include <math.h>
 #include "FreeRTOS.h"
 #include "task.h"
 #include "cmsis_os.h"
 #include "codec.h"
 #include "audio_effects.h"
 #include "stm32f4xx_it.h"
+
 
 /* USER CODE BEGIN Includes */     
 
@@ -131,13 +133,17 @@ void StartDefaultTask(void const * argument)
 void CodecTask(void const * argument)
 {
 	//uint32_t formattedData[66] = {0};
-	memset(codecTxBuffer, 0x00, 8192 * sizeof(uint16_t));
-	memset(codecRxBuffer, 0x00, 8192 * sizeof(uint16_t));
+	memset(codecTxBuffer, 0x00, BUFFER_SIZE * sizeof(uint16_t));
+	memset(codecRxBuffer, 0x00, BUFFER_SIZE * sizeof(uint16_t));
+	volatile uint16_t k,i = 0;
+	float inputGain = 5;
+
 
 	CODEC_Init();
 
 	// Start codec transfer
-	CODEC_sendReceive((uint16_t *)codecTxBuffer, (uint16_t *)codecRxBuffer);
+	CODEC_sendReceive((uint32_t *)codecTxBuffer, (uint32_t *)codecRxBuffer);
+	//codec_EnableBypass(true);
 
 	for(;;)
 	{
@@ -153,11 +159,29 @@ void CodecTask(void const * argument)
 
 			// Apply audio effect
 
+			for(i = 0; i < BUFFER_SIZE; i++){
+			    const float in = codecRxBuffer[i] * inputGain;
+			    float out;
+
+			    float uthreshold = 8388608 + 1500000;
+			    float lthreshold = 8388608 - 1500000;
+
+			    if(in > uthreshold)
+			        out = uthreshold;
+			    else if(in < lthreshold)
+			          out = lthreshold;
+			        else
+			          out = in;
+		      codecRxBuffer[i] = out;
+			  }
+
+
+
 			// Re-package audio data to 24-bit packets
 			//memcpy(codecTxBuffer, codecRxBuffer, sizeof(codecRxBuffer));
 
 			// Transfer to codec
-			CODEC_sendReceive((uint16_t *)codecRxBuffer, (uint16_t *)codecRxBuffer);
+			CODEC_sendReceive((uint32_t *)codecRxBuffer, (uint32_t *)codecRxBuffer);
 		}
 	}
 }

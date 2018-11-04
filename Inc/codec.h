@@ -68,7 +68,7 @@ union LLineIn
 
 	struct {
 		uint8_t LINMUTE		: 1;
-		uint8_t ADDR 		: 7;
+		uint8_t ADDR 		  : 7;
 		uint8_t LINVOL		: 5;
 		uint8_t RESERVED	: 2;
 		uint8_t LRINBOTH 	: 1;
@@ -81,7 +81,7 @@ union RLineIn
 
 	struct {
 		uint8_t RINMUTE		: 1;
-		uint8_t ADDR 		: 7;
+		uint8_t ADDR 		  : 7;
 		uint8_t RINVOL		: 5;
 		uint8_t RESERVED	: 2;
 		uint8_t RLINBOTH 	: 1;
@@ -94,7 +94,7 @@ union LHPOut
 
 	struct {
 		uint8_t LRHPBOTH	: 1;
-		uint8_t ADDR 		: 7;
+		uint8_t ADDR 		  : 7;
 		uint8_t LHPVOL		: 7;
 		uint8_t LZCEN 		: 1;
 	} reg;
@@ -106,7 +106,7 @@ union RHPOut
 
 	struct {
 		uint8_t RLHPBOTH	: 1;
-		uint8_t ADDR 		: 7;
+		uint8_t ADDR 		  : 7;
 		uint8_t RHPVOL		: 7;
 		uint8_t RZCEN 		: 1;
 	} reg;
@@ -118,11 +118,11 @@ union APathControl
 
 	struct {
 		uint8_t RESERVED	: 1;
-		uint8_t ADDR 		: 7;
+		uint8_t ADDR 	  	: 7;
 		uint8_t MICBOOST	: 1;
 		uint8_t MUTEMIC		: 1;
-		uint8_t INSEL		: 1;
-		uint8_t BYPASS		: 1;
+		uint8_t INSEL	  	: 1;
+		uint8_t BYPASS	 	: 1;
 		uint8_t DACSEL 		: 1;
 		uint8_t SIDETONE	: 1;
 		uint8_t SIDEATT 	: 2;
@@ -217,15 +217,16 @@ union ResetReg
 	} reg;
 } ResetReg;
 
-uint16_t codecTxBuffer[8192];
-uint16_t codecRxBuffer[8192];
+#define BUFFER_SIZE 2048
+uint32_t codecTxBuffer[BUFFER_SIZE];
+uint32_t codecRxBuffer[BUFFER_SIZE];
 
 /*======================================================================*/
 /*                          FUNCTION PROTOTYPES                         */
 /*======================================================================*/
 void CODEC_Init				(void);
 void CODEC_startReadWrite	(void);
-void CODEC_sendReceive(uint16_t *pTx, uint16_t *pRx);
+void CODEC_sendReceive(uint32_t *pTx, uint32_t *pRx);
 
 
 #endif /* CODEC_H_ */
