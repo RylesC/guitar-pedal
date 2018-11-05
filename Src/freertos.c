@@ -133,10 +133,10 @@ void StartDefaultTask(void const * argument)
 void CodecTask(void const * argument)
 {
 	//uint32_t formattedData[66] = {0};
-	memset(codecTxBuffer, 0x00, BUFFER_SIZE * sizeof(uint16_t));
-	memset(codecRxBuffer, 0x00, BUFFER_SIZE * sizeof(uint16_t));
+	memset(codecTxBuffer, 0x00, BUFFER_SIZE * sizeof(uint32_t));
+	memset(codecRxBuffer, 0x00, BUFFER_SIZE * sizeof(uint32_t));
 	volatile uint16_t k,i = 0;
-	float inputGain = 5;
+	float inputGain = 1;
 
 
 	CODEC_Init();
@@ -144,6 +144,28 @@ void CodecTask(void const * argument)
 	// Start codec transfer
 	CODEC_sendReceive((uint32_t *)codecTxBuffer, (uint32_t *)codecRxBuffer);
 	//codec_EnableBypass(true);
+  while(I2SDMARxCompleted==0);
+
+  //
+
+	for(i = 0; i < (BUFFER_SIZE); i++){
+	          //volatile uint32_t in = codecRxBuffer[i];
+	          volatile uint32_t out;
+
+	          out = 100000*(((uint32_t)i) % 64);
+
+	          //
+	//          uint32_t uthreshold = 8388608 + 1500000;
+	//          uint32_t lthreshold = 8388608 - 1500000;
+	//
+	//          if(in > uthreshold)
+	//              out = uthreshold;
+	//          else if(in < lthreshold)
+	//                out = lthreshold;
+	//              else
+	//                out = in;
+	          codecRxBuffer[i] = out;
+	        }
 
 	for(;;)
 	{
@@ -159,21 +181,24 @@ void CodecTask(void const * argument)
 
 			// Apply audio effect
 
-			for(i = 0; i < BUFFER_SIZE; i++){
-			    const float in = codecRxBuffer[i] * inputGain;
-			    float out;
+			//for(i = 0; i < BUFFER_SIZE; i++){
+			    //volatile uint32_t in = codecRxBuffer[i];
+			  //  volatile uint32_t out;
 
-			    float uthreshold = 8388608 + 1500000;
-			    float lthreshold = 8388608 - 1500000;
+			    //out = 10000*(i % 64);
 
-			    if(in > uthreshold)
-			        out = uthreshold;
-			    else if(in < lthreshold)
-			          out = lthreshold;
-			        else
-			          out = in;
-		      codecRxBuffer[i] = out;
-			  }
+			    //
+//			    uint32_t uthreshold = 8388608 + 1500000;
+//			    uint32_t lthreshold = 8388608 - 1500000;
+//
+//			    if(in > uthreshold)
+//			        out = uthreshold;
+//			    else if(in < lthreshold)
+//			          out = lthreshold;
+//			        else
+//			          out = in;
+		     // codecRxBuffer[i] = out;
+			  //}
 
 
 
@@ -181,7 +206,7 @@ void CodecTask(void const * argument)
 			//memcpy(codecTxBuffer, codecRxBuffer, sizeof(codecRxBuffer));
 
 			// Transfer to codec
-			CODEC_sendReceive((uint32_t *)codecRxBuffer, (uint32_t *)codecRxBuffer);
+			CODEC_sendReceive((uint32_t *)codecRxBuffer, (uint32_t *)codecTxBuffer);
 		}
 	}
 }
