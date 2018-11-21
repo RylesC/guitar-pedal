@@ -28,6 +28,9 @@
 /*======================================================================*/
 #define CODEC_I2C_ADDRESS 	(0b0011010) << 1
 
+extern DMA_HandleTypeDef hdma_i2s2_ext_rx;
+extern DMA_HandleTypeDef hdma_spi2_tx;
+
 /* I2C */
 #define CODEC_I2C_GPIO		GPIOB
 #define CODEC_I2C_SCL_PIN	GPIO_PIN_10
@@ -217,16 +220,17 @@ union ResetReg
 	} reg;
 } ResetReg;
 
-#define BUFFER_SIZE 2048
-uint32_t codecTxBuffer[BUFFER_SIZE];
-uint32_t codecRxBuffer[BUFFER_SIZE];
+#define BUFFER_SIZE 64
+int32_t codecTxBuffer[BUFFER_SIZE];
+int32_t codecRxBuffer[BUFFER_SIZE];
+int32_t EMPTY[BUFFER_SIZE];
 
 /*======================================================================*/
 /*                          FUNCTION PROTOTYPES                         */
 /*======================================================================*/
 void CODEC_Init				(void);
 void CODEC_startReadWrite	(void);
-void CODEC_sendReceive(uint32_t *pTx, uint32_t *pRx);
+void CODEC_sendReceive(uint16_t *pTx, uint16_t *pRx);
 
 
 #endif /* CODEC_H_ */

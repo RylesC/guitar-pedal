@@ -64,7 +64,7 @@ void CODEC_startReadWrite(void)
 	}
 }
 
-void CODEC_sendReceive(uint32_t *pTx, uint32_t *pRx)
+void CODEC_sendReceive(uint16_t* pTx, uint16_t* pRx)
 {
 	I2S2_TransmitReceive_DMA(pTx, pRx, BUFFER_SIZE);
 }

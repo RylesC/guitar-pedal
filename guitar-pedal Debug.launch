@@ -12,7 +12,7 @@
 <stringAttribute key="fr.ac6.mcu.ide.OPENOCD_NAME" value="&quot;${openstm32_openocd_path}\openocd.exe&quot;"/>
 <stringAttribute key="fr.ac6.mcu.ide.OPENOCD_OTHER_OPTIONS" value=""/>
 <intAttribute key="fr.ac6.mcu.ide.OPENOCD_PORT" value="3333"/>
-<stringAttribute key="fr.ac6.mcu.ide.OPENOCD_SCRIPT" value="${ProjDirPath}\guitar-pedal.cfg"/>
+<stringAttribute key="fr.ac6.mcu.ide.OPENOCD_SCRIPT" value="${ProjDirPath}\guitar-pedal Debug (1).cfg"/>
 <stringAttribute key="fr.ac6.mcu.ide.OPENOCD_SCRIPT_CHOICE" value="provided"/>
 <stringAttribute key="fr.ac6.mcu.ide.OPENOCD_SCRIPT_IS_LEGACY" value="false"/>
 <intAttribute key="org.eclipse.cdt.debug.gdbjtag.core.delay" value="3"/>

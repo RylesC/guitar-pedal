@@ -50,6 +50,8 @@
 #include "codec.h"
 #include "audio_effects.h"
 #include "stm32f4xx_it.h"
+#include "stm32f4xx_hal_i2s_ex.h"
+#include "codec.h"
 
 
 /* USER CODE BEGIN Includes */     
@@ -103,7 +105,7 @@ void MX_FREERTOS_Init(void) {
 
   /* USER CODE BEGIN RTOS_THREADS */
   /* add threads, ... */
-  osThreadDef(codecTask, CodecTask, osPriorityNormal, 0, 128);
+  osThreadDef(codecTask, CodecTask, osPriorityRealtime, 0, 128);
   codecTaskHandle = osThreadCreate(osThread(codecTask), NULL);
   /* USER CODE END RTOS_THREADS */
 
@@ -124,7 +126,7 @@ void StartDefaultTask(void const * argument)
 
   for(;;)
   {
-	  taskYIELD();
+    taskYIELD();
   }
   /* USER CODE END StartDefaultTask */
 }
@@ -132,85 +134,53 @@ void StartDefaultTask(void const * argument)
 /* USER CODE BEGIN Application */
 void CodecTask(void const * argument)
 {
-	//uint32_t formattedData[66] = {0};
-	memset(codecTxBuffer, 0x00, BUFFER_SIZE * sizeof(uint32_t));
-	memset(codecRxBuffer, 0x00, BUFFER_SIZE * sizeof(uint32_t));
-	volatile uint16_t k,i = 0;
-	float inputGain = 1;
+  //uint32_t formattedData[66] = {0};
+  memset(codecTxBuffer, 0x0000, BUFFER_SIZE * sizeof(int32_t));
+  memset(codecRxBuffer, 0x0000, BUFFER_SIZE * sizeof(int32_t));
+ // memset(EMPTY, 0x0000, BUFFER_SIZE * sizeof(int32_t));
+  volatile uint16_t i,k = 0;
+  int32_t in, out= 0x0000;
+  //volatile uint32_t INPUT[BUFFER_SIZE/2] =  {1638556, 1573021, 1376411, 1507484, 1638556, 1638553, 1966242, 1966242, 1835167, 1310874, 1376410, 1376408, 1441945, 1441945, 1507482, 1441946};
+ // volatile uint32_t INPUT2[BUFFER_SIZE/2] =  {327675,453071,559376,630407,655350,630407,559376,453071,327675,202279,95974,24943,0,24943,95974,202279};
+ // volatile uint32_t INPUT[BUFFER_SIZE/2] =  {0, 0, 0, 0, 0,0, 0, 0, 0, 0, 0,-10000, -10000, -20000, -20000, -100000, -100000, 0, 0, 0,0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0};
+
+  CODEC_Init();
+  // Start codec transfer
+  CODEC_sendReceive((uint16_t*)codecTxBuffer,(uint16_t*)codecRxBuffer);
+  //codec_EnableBypass(1);
+
+  for(;;)
+  {
+    // Wait to receive data
+    if( I2SDMARxCompleted && hdma_i2s2_ext_rx.State != HAL_DMA_STATE_BUSY)
+    {
+      // Update flags
+      I2SDMARxCompleted = 0;
+      I2SDMATxCompleted = 0;
+
+     // Apply audio effect
+     //while(hdma_spi2_tx.State == HAL_DMA_STATE_BUSY);
 
 
-	CODEC_Init();
+      for(i = 0; i<(BUFFER_SIZE/2); i++){
+          //in =  INPUT2[i];
+          in = codecRxBuffer[i];
+          out = in;
+          codecTxBuffer[i] = out;
+      }
 
-	// Start codec transfer
-	CODEC_sendReceive((uint32_t *)codecTxBuffer, (uint32_t *)codecRxBuffer);
-	//codec_EnableBypass(true);
-  while(I2SDMARxCompleted==0);
+     CODEC_sendReceive((uint16_t*)codecTxBuffer,(uint16_t*)codecRxBuffer);
+    }
 
-  //
+      // Re-package audio data to 24-bit packets
+      //memcpy(codecTxBuffer, codecRxBuffer, sizeof(codecRxBuffer));
 
-	for(i = 0; i < (BUFFER_SIZE); i++){
-	          //volatile uint32_t in = codecRxBuffer[i];
-	          volatile uint32_t out;
-
-	          out = 100000*(((uint32_t)i) % 64);
-
-	          //
-	//          uint32_t uthreshold = 8388608 + 1500000;
-	//          uint32_t lthreshold = 8388608 - 1500000;
-	//
-	//          if(in > uthreshold)
-	//              out = uthreshold;
-	//          else if(in < lthreshold)
-	//                out = lthreshold;
-	//              else
-	//                out = in;
-	          codecRxBuffer[i] = out;
-	        }
-
-	for(;;)
-	{
-		// Wait to receive data
-		if( I2SDMARxCompleted )
-		{
-			// Update flags
-			I2SDMARxCompleted = 0;
-			I2SDMATxCompleted = 0;
-
-			// Re-package audio data to 32-bit packets
-			//AUDIO_receive32BitRightCH(codecTxBuffer, formattedData, 66);
-
-			// Apply audio effect
-
-			//for(i = 0; i < BUFFER_SIZE; i++){
-			    //volatile uint32_t in = codecRxBuffer[i];
-			  //  volatile uint32_t out;
-
-			    //out = 10000*(i % 64);
-
-			    //
-//			    uint32_t uthreshold = 8388608 + 1500000;
-//			    uint32_t lthreshold = 8388608 - 1500000;
-//
-//			    if(in > uthreshold)
-//			        out = uthreshold;
-//			    else if(in < lthreshold)
-//			          out = lthreshold;
-//			        else
-//			          out = in;
-		     // codecRxBuffer[i] = out;
-			  //}
+     // Transfer to codec
 
 
-
-			// Re-package audio data to 24-bit packets
-			//memcpy(codecTxBuffer, codecRxBuffer, sizeof(codecRxBuffer));
-
-			// Transfer to codec
-			CODEC_sendReceive((uint32_t *)codecRxBuffer, (uint32_t *)codecTxBuffer);
-		}
-	}
+  }
 }
-     
+
 /* USER CODE END Application */
 
 /************************ (C) COPYRIGHT STMicroelectronics *****END OF FILE****/
