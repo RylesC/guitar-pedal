@@ -171,7 +171,7 @@ void CodecTask(void const * argument)
      // Apply audio effect
 
       for(i = 0; i<(BUFFER_SIZE/2); i++){
-          in = codecRxBuffer[i];// + 8000;
+          in = codecRxBuffer[i];
           out = REVERB(DelayBuffer, OutputBuffer, in,k,i);
           //Fill buffers
           DelayBuffer[k+i] = in;

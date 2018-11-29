@@ -147,8 +147,7 @@ int REVERB(int16_t *DelayBuffer, int16_t *OutputBuffer, int16_t in, int16_t k, v
   IRR_Last3 = IRR_Last2;
 
   //time delay
-
-  sig_out = (int16_t)(in + IRR_SIG_LP + sig);// + sig/2;//(in/2 + IIRBuffer[(k + i - 3500 + MAX_BUFFER)%MAX_BUFFER]/2)/4; //;
+  sig_out = (int16_t)(in + IRR_SIG_LP + sig);
   OutputBuffer[k+i] = (in + IRR_SIG_LP);
   IIRBuffer[k+i] = IRR_SIG_LP;
   return sig_out;
