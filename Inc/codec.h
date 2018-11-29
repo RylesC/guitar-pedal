@@ -220,10 +220,14 @@ union ResetReg
 	} reg;
 } ResetReg;
 
-#define BUFFER_SIZE 64
-int32_t codecTxBuffer[BUFFER_SIZE];
-int32_t codecRxBuffer[BUFFER_SIZE];
-int32_t EMPTY[BUFFER_SIZE];
+#define BUFFER_SIZE 2
+#define MAX_BUFFER 8192
+ uint16_t codecTxBuffer[BUFFER_SIZE];
+ uint16_t codecRxBuffer[BUFFER_SIZE];
+ int16_t DelayBuffer[MAX_BUFFER];
+ int16_t OutputBuffer[MAX_BUFFER];
+ int32_t IIRBuffer[MAX_BUFFER];
+//uint16_t EMPTY[BUFFER_SIZE];
 
 /*======================================================================*/
 /*                          FUNCTION PROTOTYPES                         */
@@ -231,6 +235,9 @@ int32_t EMPTY[BUFFER_SIZE];
 void CODEC_Init				(void);
 void CODEC_startReadWrite	(void);
 void CODEC_sendReceive(uint16_t *pTx, uint16_t *pRx);
+int REVERB(int16_t DelayBuffer[], int16_t OutputBuffer[], int16_t in, int16_t k, int16_t i);
+int FIR(int16_t *DelayBuffer,int16_t k, int16_t i, int16_t delay,float amp);
+int IIR(int16_t *DelayBuffer, int16_t *OutputBuffer,int16_t ki, int16_t delay, int16_t z, float amp, float a, float b);
 
 
 #endif /* CODEC_H_ */

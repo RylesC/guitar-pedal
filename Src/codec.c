@@ -13,6 +13,10 @@
 uint16_t buffer1[66] = {0};
 uint16_t buffer2[66] = {0};
 
+uint32_t IRR_Last1 = 0;
+uint32_t IRR_Last2 = 0;
+uint32_t IRR_Last3 = 0;
+
 void codec_EnableDACOut			(bool enable);
 void codec_EnableADCIn			(bool enable);
 void codec_RegisterInit			(void);
@@ -50,7 +54,7 @@ void CODEC_Init(void)
 	codec_SetInputVolume(5);
 }
 
-void CODEC_startReadWrite(void)
+/*void CODEC_startReadWrite(void)
 {
 	static bool bufferSelect = true;
 
@@ -62,7 +66,7 @@ void CODEC_startReadWrite(void)
 		I2S2_TransmitReceive_DMA(buffer2, buffer1, 66);
 		bufferSelect = true;
 	}
-}
+}*/
 
 void CODEC_sendReceive(uint16_t* pTx, uint16_t* pRx)
 {
@@ -76,7 +80,7 @@ void codec_EnableDACOut(bool enable)
 		APathControl.reg.DACSEL = 1;
 		APathControl.reg.BYPASS = 0;
 		DPathControl.reg.DACMU	= 0;
-		DPathControl.reg.DEEMP  = 0b11;
+		DPathControl.reg.DEEMP  = 0b00;
 	} else {
 		APathControl.reg.DACSEL = 0;
 		DPathControl.reg.DACMU	= 1;
@@ -88,27 +92,108 @@ void codec_EnableDACOut(bool enable)
 
 void codec_EnableADCIn(bool enable)
 {
-	LLineIn.reg.LINMUTE = 1;
-	LLineIn.reg.LINVOL = 0;
 
 	if(enable)
 	{
 		// Unmute RLineIn
 		RLineIn.reg.RINMUTE = 0;
+	  LLineIn.reg.LINMUTE = 1;
 	} else {
 		// Mute RLineIn
 		RLineIn.reg.RINMUTE = 1;
+		LLineIn.reg.LINMUTE = 1;
 	}
 
 	codec_UpdateRegister(CODEC_RLINEIN_REG);
 	codec_UpdateRegister(CODEC_LLINEIN_REG);
 }
 
+int REVERB(int16_t *DelayBuffer, int16_t *OutputBuffer, int16_t in, int16_t k, int16_t i){
+
+  volatile int32_t sig_out, sig, sig1, sig2, sig3, sig4, sig5, sig6 = 0;
+
+  int16_t delay = 3000;
+  int16_t delay1 = 1000;
+  int16_t delay2 = 1360;
+  int16_t delay3 = 1400;
+  int16_t delay4 = 1580;
+  int16_t delay5 = 1778;
+  int16_t delay6 = 2000;
+
+  //FIR implementation for early reflections
+  sig = sig + FIR(DelayBuffer,k,i,delay1,0.9);
+  sig = sig + FIR(DelayBuffer,k,i,delay2,0.7);
+  sig = sig + FIR(DelayBuffer,k,i,delay3,0.8);
+  sig = sig + FIR(DelayBuffer,k,i,delay4,0.7);
+  sig = sig + FIR(DelayBuffer,k,i,delay5,0.6);
+  sig = sig + FIR(DelayBuffer,k,i,delay6,0.6);
+
+  //int IIR(int16_t *DelayBuffer, int16_t *OutputBuffer,int16_t k, int16_t i, int16_t delay, int16_t z, float amp, float a, float b){
+  sig1 = IIR(DelayBuffer, OutputBuffer, k+i, delay, 0, 1, 0.8, 1);
+  sig2 = IIR(DelayBuffer, OutputBuffer, k+i, delay + 500, 0, 1, 0.8, 1);
+  sig3 = IIR(DelayBuffer, OutputBuffer, k+i, delay + 2000, 0, 1, 0.8, 1);
+  sig4 = IIR(DelayBuffer, OutputBuffer, k+i, delay, 3000, 1, 0.8, 1);
+  sig5 = IIR(DelayBuffer, OutputBuffer, k+i, delay + 4500, 0, 1, 0.8, 1);
+  sig6 = IIR(DelayBuffer, OutputBuffer, k+i, delay + 5000, 0, 1, 0.8, 1);
+
+  int32_t IRR_SIG = (sig1 + sig2 + sig3 +sig4 + sig5 + sig6)/6;
+
+//Low Pass filter output
+  int32_t IRR_SIG_LP = (IRR_SIG + IRR_Last1 + IRR_Last2 + IRR_Last3)/4;
+
+  IRR_Last1 = IRR_SIG_LP;
+  IRR_Last2 = IRR_Last1;
+  IRR_Last3 = IRR_Last2;
+
+  //time delay
+  IIRBuffer[i+k] = IRR_SIG_LP;
+
+  sig_out = (in + sig)/2; //+ IIRBuffer[(k + i - 3500 + MAX_BUFFER)%MAX_BUFFER];
+
+
+  return (int16_t)sig_out;
+}
+
+int FIR(int16_t *DelayBuffer,int16_t k, int16_t i, int16_t delay, float amp){
+
+  if ((i+k - delay) < 0){
+      return (int32_t)(amp*DelayBuffer[k+i - delay + MAX_BUFFER]);
+  }
+  else{
+      return (int32_t) (amp*DelayBuffer[k+i - delay]);
+  }
+}
+
+
+int IIR(int16_t *DelayBuffer, int16_t *OutputBuffer, int16_t ki, int16_t delay, int16_t z, float amp, float a, float b){
+
+
+  if ((ki - (delay+1) - z) < 0){
+       //FIR
+      return (int32_t)(amp*(a*OutputBuffer[ki - z - (delay) + MAX_BUFFER]));
+  }
+  else{
+      return (int32_t)(amp*(a*OutputBuffer[ki - z - (delay)]));
+  }
+
+
+
+//  if ((i+k - (delay+1) - z) < 0){
+//       //FIR
+//      return (int32_t)(amp*(a*OutputBuffer[k+i - z - (delay+1) + MAX_BUFFER] + b*DelayBuffer[k+i - z + MAX_BUFFER]));
+//  }
+//  else{
+//      return (int32_t)(amp*(a*OutputBuffer[k+i - z - (delay+1)] + b*DelayBuffer[k+i - z]));
+//  }
+}
+
+/*
 void codec_ConfigureDFMT(void)
 {
 	DAInterfaceFormat.reg.IWL = 0b11; // Configure for 32-bit frame
 	codec_UpdateRegister(CODEC_DFMT_REG);
 }
+*/
 
 void codec_RegisterInit(void)
 {
@@ -151,7 +236,7 @@ void codec_RegisterInit(void)
 	// Digital Audio Path Control Register
 	DPathControl.reg.ADDR 		= CODEC_DPATHCTRL_REG;
 	DPathControl.reg.HPOR		= 0;
-	DPathControl.reg.DACMU		= 1;
+	DPathControl.reg.DACMU		= 0;
 	DPathControl.reg.DEEMP		= 0b00;
 	DPathControl.reg.ADCHPD		= 0;
 
@@ -172,7 +257,7 @@ void codec_RegisterInit(void)
 	DAInterfaceFormat.reg.MS		= 0;
 	DAInterfaceFormat.reg.LRSWAP 	= 0;
 	DAInterfaceFormat.reg.LRP 		= 0;
-	DAInterfaceFormat.reg.IWL		= 0b10;	// 24-bit Input Audio Data
+	DAInterfaceFormat.reg.IWL		= 0b00;	// 16-bit Input Audio Data
 	DAInterfaceFormat.reg.FORMAT 	= 0b10; // I2S Format, MSB First, left justified
 
 
@@ -259,14 +344,17 @@ void codec_SetInputVolume(uint8_t volume)
 	if(volume == 0)
 	{
 		RLineIn.reg.RINMUTE = 1;
-
+		LLineIn.reg.LINMUTE = 1;
 	} else {
 		if( volume > 32 ) volume = 32;
 		RLineIn.reg.RINVOL = (volume - 1);
 		RLineIn.reg.RINMUTE = 0;
+		LLineIn.reg.LINVOL = (volume - 1);
+		LLineIn.reg.LINMUTE = 0;
 	}
 
 	codec_UpdateRegister(CODEC_RLINEIN_REG);
+	codec_UpdateRegister(CODEC_LLINEIN_REG);
 }
 
 void codec_SetOutputVolume(uint8_t volume)

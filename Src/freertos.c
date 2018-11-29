@@ -135,41 +135,69 @@ void StartDefaultTask(void const * argument)
 void CodecTask(void const * argument)
 {
   //uint32_t formattedData[66] = {0};
-  memset(codecTxBuffer, 0x0000, BUFFER_SIZE * sizeof(int32_t));
-  memset(codecRxBuffer, 0x0000, BUFFER_SIZE * sizeof(int32_t));
+  memset(codecTxBuffer, 0x00000000, BUFFER_SIZE * sizeof(uint16_t));
+  memset(codecRxBuffer, 0x00000000, BUFFER_SIZE * sizeof(uint16_t));
+ // memset(codecTxBuffer_Long, 0x00000000, BUFFER_SIZE * sizeof(uint16_t));
+
  // memset(EMPTY, 0x0000, BUFFER_SIZE * sizeof(int32_t));
-  volatile uint16_t i,k = 0;
-  int32_t in, out= 0x0000;
+  volatile int16_t i,k,j= 0;
+  volatile int16_t in,out= 0;
+
   //volatile uint32_t INPUT[BUFFER_SIZE/2] =  {1638556, 1573021, 1376411, 1507484, 1638556, 1638553, 1966242, 1966242, 1835167, 1310874, 1376410, 1376408, 1441945, 1441945, 1507482, 1441946};
- // volatile uint32_t INPUT2[BUFFER_SIZE/2] =  {327675,453071,559376,630407,655350,630407,559376,453071,327675,202279,95974,24943,0,24943,95974,202279};
- // volatile uint32_t INPUT[BUFFER_SIZE/2] =  {0, 0, 0, 0, 0,0, 0, 0, 0, 0, 0,-10000, -10000, -20000, -20000, -100000, -100000, 0, 0, 0,0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0};
+  //volatile int16_t INPUT2[BUFFER_SIZE] =  {0, 65535, 0, 65535, 0, 65535, 0,65535};
+  //volatile int32_t INPUT[BUFFER_SIZE/2] =  {0, 100, 0, 100, 0, 100, 0, 100, 0, 100, 0, 100, 0, 100, 0, 100};
 
   CODEC_Init();
   // Start codec transfer
+  while(hdma_spi2_tx.State != HAL_DMA_STATE_READY);
   CODEC_sendReceive((uint16_t*)codecTxBuffer,(uint16_t*)codecRxBuffer);
   //codec_EnableBypass(1);
+  //I2SDMARxCompleted = 1;
 
   for(;;)
   {
+    if(((j*BUFFER_SIZE)%MAX_BUFFER) ==0){
+        j =0;
+    }
+
+    k = (j*BUFFER_SIZE)%MAX_BUFFER;
     // Wait to receive data
-    if( I2SDMARxCompleted && hdma_i2s2_ext_rx.State != HAL_DMA_STATE_BUSY)
+    if( I2SDMARxCompleted)
     {
       // Update flags
       I2SDMARxCompleted = 0;
       I2SDMATxCompleted = 0;
 
      // Apply audio effect
-     //while(hdma_spi2_tx.State == HAL_DMA_STATE_BUSY);
-
 
       for(i = 0; i<(BUFFER_SIZE/2); i++){
-          //in =  INPUT2[i];
-          in = codecRxBuffer[i];
-          out = in;
+          in = (int16_t)codecRxBuffer[i];
+          out = REVERB(DelayBuffer, OutputBuffer, in,k,i);
+          //Fill buffers
+          DelayBuffer[k+i] = in;
           codecTxBuffer[i] = out;
       }
+          //codecTxBuffer_Long = Data_Full;
+          CODEC_sendReceive((uint16_t*)codecTxBuffer,(uint16_t*)codecRxBuffer);
+          j++;
+    }
+//      for(i = 0; i<(BUFFER_SIZE/2); i++){
+//      out = ((codecRxBuffer[2*i]<<8) & 0xff00) | (codecRxBuffer[2*i+1] & 0x00ff);
+//      EMPTY[i*2+1] = out;
+//      }
 
-     CODEC_sendReceive((uint16_t*)codecTxBuffer,(uint16_t*)codecRxBuffer);
+//     while(hdma_spi2_tx.State != HAL_DMA_STATE_READY);
+//      codecTxBuffer[0] = codecRxBuffer[0]; //R
+
+//      codecTxBuffer[1] = 0;//1000;
+//      codecTxBuffer[2] = 0; //L
+//      codecTxBuffer[3] = 0;
+//      codecTxBuffer[4] = 0; //R
+//      codecTxBuffer[5] = 0;//1000;
+//      codecTxBuffer[6] = 0; //L
+//      codecTxBuffer[7] = 0;
+      //while(hdma_spi2_tx.State != HAL_DMA_STATE_READY);
+
     }
 
       // Re-package audio data to 24-bit packets
@@ -178,7 +206,6 @@ void CodecTask(void const * argument)
      // Transfer to codec
 
 
-  }
 }
 
 /* USER CODE END Application */
