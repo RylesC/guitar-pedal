@@ -235,7 +235,7 @@ union ResetReg
 void CODEC_Init				(void);
 void CODEC_startReadWrite	(void);
 void CODEC_sendReceive(uint16_t *pTx, uint16_t *pRx);
-int REVERB(int16_t DelayBuffer[], int16_t OutputBuffer[], int16_t in, int16_t k, int16_t i);
+int REVERB(int16_t *DelayBuffer, int16_t *OutputBuffer, volatile int16_t in, int16_t k, int16_t i);
 int FIR(int16_t *DelayBuffer,int16_t k, int16_t i, int16_t delay,float amp);
 int IIR(int16_t *DelayBuffer, int16_t *OutputBuffer,int16_t ki, int16_t delay, int16_t z, float amp, float a, float b);
 

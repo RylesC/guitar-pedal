@@ -13,9 +13,9 @@
 uint16_t buffer1[66] = {0};
 uint16_t buffer2[66] = {0};
 
-uint32_t IRR_Last1 = 0;
-uint32_t IRR_Last2 = 0;
-uint32_t IRR_Last3 = 0;
+ int32_t IRR_Last1 = 0;
+int32_t IRR_Last2 = 0;
+int32_t IRR_Last3 = 0;
 
 void codec_EnableDACOut			(bool enable);
 void codec_EnableADCIn			(bool enable);
@@ -108,33 +108,34 @@ void codec_EnableADCIn(bool enable)
 	codec_UpdateRegister(CODEC_LLINEIN_REG);
 }
 
-int REVERB(int16_t *DelayBuffer, int16_t *OutputBuffer, int16_t in, int16_t k, int16_t i){
+int REVERB(int16_t *DelayBuffer, int16_t *OutputBuffer, int16_t in, int16_t k, volatile int16_t i){
 
   volatile int32_t sig_out, sig, sig1, sig2, sig3, sig4, sig5, sig6 = 0;
 
-  int16_t delay = 3000;
-  int16_t delay1 = 1000;
-  int16_t delay2 = 1360;
-  int16_t delay3 = 1400;
-  int16_t delay4 = 1580;
-  int16_t delay5 = 1778;
-  int16_t delay6 = 2000;
+  int16_t delay = 5000;
+  int16_t delay1 = 2200;
+  int16_t delay2 = 2360;
+  int16_t delay3 = 2430;
+  int16_t delay4 = 3580;
+  int16_t delay5 = 3778;
+  int16_t delay6 = 3000;
 
   //FIR implementation for early reflections
-  sig = sig + FIR(DelayBuffer,k,i,delay1,0.9);
+  sig = sig + FIR(DelayBuffer,k,i,delay1,0.6);
   sig = sig + FIR(DelayBuffer,k,i,delay2,0.7);
-  sig = sig + FIR(DelayBuffer,k,i,delay3,0.8);
-  sig = sig + FIR(DelayBuffer,k,i,delay4,0.7);
-  sig = sig + FIR(DelayBuffer,k,i,delay5,0.6);
-  sig = sig + FIR(DelayBuffer,k,i,delay6,0.6);
+  sig = sig + FIR(DelayBuffer,k,i,delay3,0.6);
+  sig = sig + FIR(DelayBuffer,k,i,delay4,0.5);
+  sig = sig + FIR(DelayBuffer,k,i,delay5,0.4);
+  sig = sig + FIR(DelayBuffer,k,i,delay6,0.4);
+  sig = sig/16;
 
-  //int IIR(int16_t *DelayBuffer, int16_t *OutputBuffer,int16_t k, int16_t i, int16_t delay, int16_t z, float amp, float a, float b){
-  sig1 = IIR(DelayBuffer, OutputBuffer, k+i, delay, 0, 1, 0.8, 1);
-  sig2 = IIR(DelayBuffer, OutputBuffer, k+i, delay + 500, 0, 1, 0.8, 1);
-  sig3 = IIR(DelayBuffer, OutputBuffer, k+i, delay + 2000, 0, 1, 0.8, 1);
-  sig4 = IIR(DelayBuffer, OutputBuffer, k+i, delay, 3000, 1, 0.8, 1);
-  sig5 = IIR(DelayBuffer, OutputBuffer, k+i, delay + 4500, 0, 1, 0.8, 1);
-  sig6 = IIR(DelayBuffer, OutputBuffer, k+i, delay + 5000, 0, 1, 0.8, 1);
+  //IRR implementation for late reflections
+  sig1 = IIR(DelayBuffer, OutputBuffer, k+i, delay, 0, 1, 0.9, 1);
+  sig2 = IIR(DelayBuffer, OutputBuffer, k+i, delay + 500, 0, 1, 0.9, 1);
+  sig3 = IIR(DelayBuffer, OutputBuffer, k+i, delay + 900, 0, 1, 0.9, 1);
+  sig4 = IIR(DelayBuffer, OutputBuffer, k+i, delay, 1500, 1, 0.9, 1);
+  sig5 = IIR(DelayBuffer, OutputBuffer, k+i, delay + 2500, 0, 1, 0.9, 1);
+  sig6 = IIR(DelayBuffer, OutputBuffer, k+i, delay + 3000, 0, 1, 0.9, 1);
 
   int32_t IRR_SIG = (sig1 + sig2 + sig3 +sig4 + sig5 + sig6)/6;
 
@@ -146,21 +147,20 @@ int REVERB(int16_t *DelayBuffer, int16_t *OutputBuffer, int16_t in, int16_t k, i
   IRR_Last3 = IRR_Last2;
 
   //time delay
-  IIRBuffer[i+k] = IRR_SIG_LP;
 
-  sig_out = (in + sig)/2; //+ IIRBuffer[(k + i - 3500 + MAX_BUFFER)%MAX_BUFFER];
-
-
-  return (int16_t)sig_out;
+  sig_out = (int16_t)(in + IRR_SIG_LP + sig);// + sig/2;//(in/2 + IIRBuffer[(k + i - 3500 + MAX_BUFFER)%MAX_BUFFER]/2)/4; //;
+  OutputBuffer[k+i] = (in + IRR_SIG_LP);
+  IIRBuffer[k+i] = IRR_SIG_LP;
+  return sig_out;
 }
 
 int FIR(int16_t *DelayBuffer,int16_t k, int16_t i, int16_t delay, float amp){
 
   if ((i+k - delay) < 0){
-      return (int32_t)(amp*DelayBuffer[k+i - delay + MAX_BUFFER]);
+      return (amp*(int16_t)DelayBuffer[k+i - delay + MAX_BUFFER]);
   }
   else{
-      return (int32_t) (amp*DelayBuffer[k+i - delay]);
+      return (amp*(int16_t)DelayBuffer[k+i - delay]);
   }
 }
 
@@ -168,23 +168,13 @@ int FIR(int16_t *DelayBuffer,int16_t k, int16_t i, int16_t delay, float amp){
 int IIR(int16_t *DelayBuffer, int16_t *OutputBuffer, int16_t ki, int16_t delay, int16_t z, float amp, float a, float b){
 
 
-  if ((ki - (delay+1) - z) < 0){
+  if ((ki - (delay) - z) < 0){
        //FIR
-      return (int32_t)(amp*(a*OutputBuffer[ki - z - (delay) + MAX_BUFFER]));
+      return (amp*(a*(int16_t)OutputBuffer[ki - z - (delay) + MAX_BUFFER]));
   }
   else{
-      return (int32_t)(amp*(a*OutputBuffer[ki - z - (delay)]));
+      return (amp*(a*(int16_t)OutputBuffer[ki - z - (delay)]));
   }
-
-
-
-//  if ((i+k - (delay+1) - z) < 0){
-//       //FIR
-//      return (int32_t)(amp*(a*OutputBuffer[k+i - z - (delay+1) + MAX_BUFFER] + b*DelayBuffer[k+i - z + MAX_BUFFER]));
-//  }
-//  else{
-//      return (int32_t)(amp*(a*OutputBuffer[k+i - z - (delay+1)] + b*DelayBuffer[k+i - z]));
-//  }
 }
 
 /*
