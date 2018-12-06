@@ -50,11 +50,11 @@ void CODEC_Init(void)
 	codec_ActivateCodec();
 
 	// Just for testing...
-	codec_SetOutputVolume(40);
-	codec_SetInputVolume(5);
+	codec_SetOutputVolume(47);
+	codec_SetInputVolume(3);
 }
 
-/*void CODEC_startReadWrite(void)
+void CODEC_startReadWrite(void)
 {
 	static bool bufferSelect = true;
 
@@ -66,7 +66,7 @@ void CODEC_Init(void)
 		I2S2_TransmitReceive_DMA(buffer2, buffer1, 66);
 		bufferSelect = true;
 	}
-}*/
+}
 
 void CODEC_sendReceive(uint16_t* pTx, uint16_t* pRx)
 {
@@ -110,45 +110,57 @@ void codec_EnableADCIn(bool enable)
 
 int REVERB(int16_t *DelayBuffer, int16_t *OutputBuffer, int16_t in, int16_t k, volatile int16_t i){
 
-  volatile int32_t sig_out, sig, sig1, sig2, sig3, sig4, sig5, sig6 = 0;
+  volatile int16_t sig_out, sig, sig1, sig2, sig3, sig4, sig5, sig6, sig7, sig8, sig9 = 0;
 
-  int16_t delay = 5000;
-  int16_t delay1 = 2200;
-  int16_t delay2 = 2360;
-  int16_t delay3 = 2430;
-  int16_t delay4 = 3580;
-  int16_t delay5 = 3778;
-  int16_t delay6 = 3000;
+  int16_t delay = 6000;
+  int16_t delay1 = 800;
+  int16_t delay2 = 1360;
+  int16_t delay3 = 1830;
+  int16_t delay4 = 2580;
+  int16_t delay5 = 2778;
+  int16_t delay6 = 3010;
+  int16_t delay7 = 3420;
+  int16_t delay8 = 4780;
+  int16_t delay9 = 5986;
+
+  sig = 0;
+  sig_out = 0;
 
   //FIR implementation for early reflections
-  sig = sig + FIR(DelayBuffer,k,i,delay1,0.6);
-  sig = sig + FIR(DelayBuffer,k,i,delay2,0.7);
-  sig = sig + FIR(DelayBuffer,k,i,delay3,0.6);
+  sig = sig + FIR(DelayBuffer,k,i,delay1,0.7);
+  sig = sig + FIR(DelayBuffer,k,i,delay2,0.8);
+  sig = sig + FIR(DelayBuffer,k,i,delay3,0.7);
   sig = sig + FIR(DelayBuffer,k,i,delay4,0.5);
-  sig = sig + FIR(DelayBuffer,k,i,delay5,0.4);
-  sig = sig + FIR(DelayBuffer,k,i,delay6,0.4);
-  sig = sig/16;
+  sig = sig + FIR(DelayBuffer,k,i,delay5,0.6);
+  sig = sig + FIR(DelayBuffer,k,i,delay6,0.5);
+  sig = sig + FIR(DelayBuffer,k,i,delay7,0.3);
+  sig = sig + FIR(DelayBuffer,k,i,delay8,0.4);
+  sig = sig + FIR(DelayBuffer,k,i,delay9,0.3);
+
 
   //IRR implementation for late reflections
-  sig1 = IIR(DelayBuffer, OutputBuffer, k+i, delay, 0, 1, 0.9, 1);
-  sig2 = IIR(DelayBuffer, OutputBuffer, k+i, delay + 500, 0, 1, 0.9, 1);
-  sig3 = IIR(DelayBuffer, OutputBuffer, k+i, delay + 900, 0, 1, 0.9, 1);
-  sig4 = IIR(DelayBuffer, OutputBuffer, k+i, delay, 1500, 1, 0.9, 1);
-  sig5 = IIR(DelayBuffer, OutputBuffer, k+i, delay + 2500, 0, 1, 0.9, 1);
-  sig6 = IIR(DelayBuffer, OutputBuffer, k+i, delay + 3000, 0, 1, 0.9, 1);
+  sig1 = IIR(DelayBuffer, OutputBuffer, k+i, delay, 0, 1, 0.9, 0.8);
+  sig2 = IIR(DelayBuffer, OutputBuffer, k+i, delay + 1000, 0, 1, 0.9, 0.8);
+  sig3 = IIR(DelayBuffer, OutputBuffer, k+i, delay + 2000, 0, 1, 0.9, 0.8);
+  sig4 = IIR(DelayBuffer, OutputBuffer, k+i, delay, 2200, 1, 0.9, 1);
+  sig5 = IIR(DelayBuffer, OutputBuffer, k+i, delay + 2600, 0, 1, 0.9, 0.8);
+  sig6 = IIR(DelayBuffer, OutputBuffer, k+i, delay + 2700, 0, 1, 0.9, 0.8);
+  sig7 = IIR(DelayBuffer, OutputBuffer, k+i, delay, 1500, 1, 0.9, 1);
+  sig8 = IIR(DelayBuffer, OutputBuffer, k+i, delay + 3300, 0, 1, 0.9, 0.8);
+  sig9 = IIR(DelayBuffer, OutputBuffer, k+i, delay + 4000, 0, 1, 0.9, 0.8);
 
-  int32_t IRR_SIG = (sig1 + sig2 + sig3 +sig4 + sig5 + sig6)/6;
+  int16_t IRR_SIG = (sig1 + sig2 + sig3 +sig4 + sig5 + sig6 + sig7 + sig8 + sig9)/9;
 
-//Low Pass filter output
-  int32_t IRR_SIG_LP = (IRR_SIG + IRR_Last1 + IRR_Last2 + IRR_Last3)/4;
+//Low Pass/All pass filter output
+  int16_t IRR_SIG_LP = (IRR_SIG + IRR_Last1 + IRR_Last2 + IRR_Last3)/4;
 
   IRR_Last1 = IRR_SIG_LP;
   IRR_Last2 = IRR_Last1;
   IRR_Last3 = IRR_Last2;
 
   //time delay
-  sig_out = (int16_t)(in + IRR_SIG_LP + sig);
-  OutputBuffer[k+i] = (in + IRR_SIG_LP);
+  sig_out = (in + IRR_SIG_LP + sig);
+  OutputBuffer[k+i] = (in + IRR_SIG_LP + sig);
   IIRBuffer[k+i] = IRR_SIG_LP;
   return sig_out;
 }
@@ -176,13 +188,13 @@ int IIR(int16_t *DelayBuffer, int16_t *OutputBuffer, int16_t ki, int16_t delay, 
   }
 }
 
-/*
+
 void codec_ConfigureDFMT(void)
 {
 	DAInterfaceFormat.reg.IWL = 0b11; // Configure for 32-bit frame
 	codec_UpdateRegister(CODEC_DFMT_REG);
 }
-*/
+
 
 void codec_RegisterInit(void)
 {

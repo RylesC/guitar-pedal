@@ -221,12 +221,12 @@ union ResetReg
 } ResetReg;
 
 #define BUFFER_SIZE 2
-#define MAX_BUFFER 8192
+#define MAX_BUFFER 10000
  uint16_t codecTxBuffer[BUFFER_SIZE];
  uint16_t codecRxBuffer[BUFFER_SIZE];
  int16_t DelayBuffer[MAX_BUFFER];
  int16_t OutputBuffer[MAX_BUFFER];
- int32_t IIRBuffer[MAX_BUFFER];
+ int16_t IIRBuffer[MAX_BUFFER];
 //uint16_t EMPTY[BUFFER_SIZE];
 
 /*======================================================================*/
